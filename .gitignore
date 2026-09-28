@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Datasets and generated results do not belong in the code release.
+/data/
+*.lmdb/
+*.yuv
+*.y4m
+/results/
+*.zip
+
+# Keep only the explicitly released checkpoint and its historical logs.
+/exp/*
+!/exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/
+/exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/*
+!/exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/ckp_300000.pt
+!/exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/log.log
+!/exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/log_test.log

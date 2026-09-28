@@ -7,23 +7,22 @@ import os.path as op
 import numpy as np
 from collections import OrderedDict
 from tqdm import tqdm
-
+import skimage
 import utils  # my tool box
 import dataset
 from DCNedgev1 import DCnv5
 
-
 def receive_arg():
     """Process all hyper-parameters and experiment settings.
-    
+
     Record in opts_dict."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--opt_path', type=str, default='option_R3_mfqev2_4G.yml', 
+        '--opt_path', type=str, default='option_R1_scc_1G.yml',
         help='Path to option YAML file.'
-        )
+    )
     args = parser.parse_args()
-    
+
     with open(args.opt_path, 'r') as fp:
         opts_dict = yaml.load(fp, Loader=yaml.FullLoader)
 
@@ -33,19 +32,19 @@ def receive_arg():
         opts_dict['train']['exp_name'] = utils.get_timestr()
 
     opts_dict['train']['log_path'] = op.join(
-        "exp", opts_dict['train']['exp_name'], "log_test.log"
-        )
+        "exp", opts_dict['train']['exp_name'], "log_test_current.log"
+    )
     opts_dict['train']['checkpoint_save_path_pre'] = op.join(
         "exp", opts_dict['train']['exp_name'], "ckp_"
-        )
+    )
     opts_dict['test']['restore_iter'] = int(
         opts_dict['test']['restore_iter']
-        )
+    )
     opts_dict['test']['checkpoint_save_path'] = (
         f"{opts_dict['train']['checkpoint_save_path_pre']}"
         f"{opts_dict['test']['restore_iter']}"
         '.pt'
-        )
+    )
 
     return opts_dict
 
@@ -68,23 +67,23 @@ def main():
         f"Timestamp: [{utils.get_timestr()}]\n"
         f"\n{'<' * 10} Options {'>' * 10}\n"
         f"{utils.dict2str(opts_dict['test'])}"
-        )
+    )
     print(msg)
     log_fp.write(msg + '\n')
     log_fp.flush()
 
-    # ========== 
+    # ==========
     # Ensure reproducibility or Speed up
     # ==========
 
-    #torch.backends.cudnn.benchmark = False  # if reproduce
-    #torch.backends.cudnn.deterministic = True  # if reproduce
+    # torch.backends.cudnn.benchmark = False  # if reproduce
+    # torch.backends.cudnn.deterministic = True  # if reproduce
     torch.backends.cudnn.benchmark = True  # speed up
 
     # ==========
     # create test data prefetchers
     # ==========
-    
+
     # create datasets
     test_ds_type = opts_dict['dataset']['test']['type']
     radius = opts_dict['network']['radius']
@@ -92,9 +91,9 @@ def main():
         "Not implemented!"
     test_ds_cls = getattr(dataset, test_ds_type)
     test_ds = test_ds_cls(
-        opts_dict=opts_dict['dataset']['test'], 
+        opts_dict=opts_dict['dataset']['test'],
         radius=radius
-        )
+    )
 
     test_num = len(test_ds)
     test_vid_num = test_ds.get_vid_num()
@@ -104,11 +103,11 @@ def main():
 
     # create dataloaders
     test_loader = utils.create_dataloader(
-        dataset=test_ds, 
-        opts_dict=opts_dict, 
-        sampler=test_sampler, 
+        dataset=test_ds,
+        opts_dict=opts_dict,
+        sampler=test_sampler,
         phase='val'
-        )
+    )
     assert test_loader is not None
 
     # create dataloader prefetchers
@@ -134,7 +133,7 @@ def main():
         model.load_state_dict(new_state_dict)
     else:  # single-gpu training
         model.load_state_dict(checkpoint['state_dict'])
-    
+
     msg = f'> model {checkpoint_save_path} loaded.'
     print(msg)
     log_fp.write(msg + '\n')
@@ -148,13 +147,13 @@ def main():
 
     # define criterion
     assert opts_dict['test']['criterion'].pop('type') == \
-        'PSNR', "Not implemented."
-    criterion = utils.PSNR()
+           'PSNR', "Not implemented."
+#    criterion = skimage.metrics.structural_similarity()
 
     # ==========
     # validation
     # ==========
-                
+
     # create timer
     total_timer = utils.Timer()
 
@@ -168,9 +167,9 @@ def main():
         name_vid_dict[index_vid] = ""
 
     pbar = tqdm(
-        total=test_num, 
+        total=test_num,
         ncols=opts_dict['test']['pbar_len']
-        )
+    )
 
     # fetch the first batch
     test_prefetcher.reset()
@@ -183,26 +182,33 @@ def main():
             lq_data = val_data['lq'].cuda()  # (B T [RGB] H W)
             index_vid = val_data['index_vid'].item()
             name_vid = val_data['name_vid'][0]  # bs must be 1!
-            
-            b, _, c, _, _  = lq_data.shape
+
+            b, _, c, _, _ = lq_data.shape
             assert b == 1, "Not supported!"
-            
+
             input_temp = torch.cat(
-                [lq_data[:,:,i,...] for i in range(c)], 
+                [lq_data[:, :, i, ...] for i in range(c)],
                 dim=1
-                )  # B [R1 ... R7 G1 ... G7 B1 ... B7] H W
+            )  # B [R1 ... R7 G1 ... G7 B1 ... B7] H W
             input_data = input_temp.unsqueeze(dim=1)
             enhanced_data = model(input_data)  # (B [RGB] H W)
 
+
             # eval
-            batch_ori = criterion(lq_data[0, radius, ...], gt_data[0])
-            batch_perf = criterion(enhanced_data[0], gt_data[0])
+            lq_img = lq_data[0,radius,...].cpu().numpy()*255.0
+            gt_img = gt_data[0].cpu().numpy()*255.0
+            enhanced_img = enhanced_data[0].cpu().numpy()*255.0
+            gt_img = np.squeeze(gt_img)
+            lq_img = np.squeeze(lq_img)
+            enhanced_img = np.squeeze(enhanced_img)
+            batch_ori = skimage.metrics.structural_similarity(lq_img,gt_img,data_range=255)
+            batch_perf = skimage.metrics.structural_similarity(enhanced_img, gt_img,data_range=255.0)
 
             # display
             pbar.set_description(
-                "{:s}: [{:.3f}] {:s} -> [{:.3f}] {:s}"
+                "{:s}: [{:.5f}] {:s} -> [{:.5f}] {:s}"
                 .format(name_vid, batch_ori, unit, batch_perf, unit)
-                )
+            )
             pbar.update()
 
             # log
@@ -215,7 +221,7 @@ def main():
 
             # fetch next batch
             val_data = test_prefetcher.next()
-        
+
     # end of val
     pbar.close()
 
@@ -227,22 +233,22 @@ def main():
         per = per_aver_dict[index_vid].get_ave()
         ori = ori_aver_dict[index_vid].get_ave()
         name_vid = name_vid_dict[index_vid]
-        msg = "{:s}: [{:.3f}] {:s} -> [{:.3f}] {:s}".format(
-            name_vid, ori, unit, per, unit
-            )
+        msg = "{:s}: [{:.5f}] {:s} -> [{:.5f}] {:s} -> delta [{:.5f}] {:s}".format(
+            name_vid, ori, unit, per, unit, per - ori,unit
+        )
         print(msg)
         log_fp.write(msg + '\n')
     ave_per = np.mean([
         per_aver_dict[index_vid].get_ave() for index_vid in range(test_vid_num)
-        ])
+    ])
     ave_ori = np.mean([
         ori_aver_dict[index_vid].get_ave() for index_vid in range(test_vid_num)
-        ])
+    ])
     msg = (
-        f"{'> ori: [{:.3f}] {:s}'.format(ave_ori, unit)}\n"
-        f"{'> ave: [{:.3f}] {:s}'.format(ave_per, unit)}\n"
-        f"{'> delta: [{:.3f}] {:s}'.format(ave_per - ave_ori, unit)}"
-        )
+        f"{'> ori: [{:.5f}] {:s}'.format(ave_ori, unit)}\n"
+        f"{'> ave: [{:.5f}] {:s}'.format(ave_per, unit)}\n"
+        f"{'> delta: [{:.5f}] {:s}'.format(ave_per - ave_ori, unit)}"
+    )
     print(msg)
     log_fp.write(msg + '\n')
     log_fp.flush()
@@ -251,21 +257,20 @@ def main():
     # final log & close logger
     # ==========
 
-    total_time = total_timer.get_interval() / 3600
-    msg = "TOTAL TIME: [{:.1f}] h".format(total_time)
+    total_time = total_timer.get_interval() * 1000 / 2985075
+    msg = "TOTAL TIME: [{:.5f}] ms/CTU".format(total_time)
     print(msg)
     log_fp.write(msg + '\n')
-    
+
     msg = (
         f"\n{'<' * 10} Goodbye {'>' * 10}\n"
         f"Timestamp: [{utils.get_timestr()}]"
-        )
+    )
     print(msg)
     log_fp.write(msg + '\n')
-    
+
     log_fp.close()
 
 
 if __name__ == '__main__':
     main()
-    

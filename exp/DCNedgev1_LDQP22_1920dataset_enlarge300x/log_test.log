@@ -1,0 +1,39 @@
+<<<<<<<<<< Test >>>>>>>>>>
+Timestamp: [20230702_172205]
+
+<<<<<<<<<< Options >>>>>>>>>>
+restore_iter: 300000
+pbar_len: 100
+criterion:[
+  type: PSNR
+  unit: dB
+  ]
+checkpoint_save_path: exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/ckp_300000.pt
+
+loading model exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/ckp_300000.pt...
+> model exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/ckp_300000.pt loaded.
+
+<<<<<<<<<< Results >>>>>>>>>>
+BasketballScreen_2560x1440_60_8bit_623_444.yuv: [0.99191] dB -> [0.99240] dB -> delta [0.00049] dB
+ChineseEditing_1920x1080_60_8bit_600_444.yuv: [0.99855] dB -> [0.99888] dB -> delta [0.00033] dB
+EnglishDocumentEditing_1920x1080_30_8bit_300_444.yuv: [0.99924] dB -> [0.99948] dB -> delta [0.00025] dB
+MissionControlClip2_2560x1440_60_8bit_600_444.yuv: [0.98956] dB -> [0.99043] dB -> delta [0.00087] dB
+MissionControlClip3_1920x1080_60_8bit_600_444.yuv: [0.99328] dB -> [0.99401] dB -> delta [0.00074] dB
+Paperpdf_1920x1080_60_8bit_300_444.yuv: [0.99899] dB -> [0.99910] dB -> delta [0.00011] dB
+Sephora_1920x1080_60_8bit_300_444.yuv: [0.99612] dB -> [0.99652] dB -> delta [0.00041] dB
+mixframe1_1920x1080_60_8bit_300_444.yuv: [0.99531] dB -> [0.99590] dB -> delta [0.00059] dB
+mixvideo1_1920x1080_60_8bit_300_444.yuv: [0.99634] dB -> [0.99681] dB -> delta [0.00047] dB
+scSlideShow_1280x720_20_8bit_500_444.yuv: [0.99439] dB -> [0.99499] dB -> delta [0.00060] dB
+scconsole_1920x1080_60_8bit_600_444.yuv: [0.99973] dB -> [0.99979] dB -> delta [0.00006] dB
+scdesktop_1920x1080_60_8bit_600_444.yuv: [0.99962] dB -> [0.99971] dB -> delta [0.00009] dB
+scmap_1280x720_60_8bit_600_444.yuv: [0.99450] dB -> [0.99554] dB -> delta [0.00103] dB
+scprogramming_1280x720_60_8bit_600_444.yuv: [0.99665] dB -> [0.99740] dB -> delta [0.00075] dB
+scrobot_1280x720_30_8bit_300_444.yuv: [0.96706] dB -> [0.96677] dB -> delta [-0.00030] dB
+scwebbrowsing_1280x720_30_8bit_300_444.yuv: [0.99885] dB -> [0.99902] dB -> delta [0.00017] dB
+> ori: [0.99438] dB
+> ave: [0.99480] dB
+> delta: [0.00042] dB
+TOTAL TIME: [1.66454] ms/CTU
+
+<<<<<<<<<< Goodbye >>>>>>>>>>
+Timestamp: [20230702_184455]
