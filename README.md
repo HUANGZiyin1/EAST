@@ -33,7 +33,6 @@ EAST/
 ├── requirements.txt
 └── exp/DCNedgev1_LDQP22_1920dataset_enlarge300x/
     ├── ckp_300000.pt
-    ├── log.log
     └── log_test.log
 ```
 
